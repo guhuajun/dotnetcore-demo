@@ -1,8 +1,17 @@
-FROM mcr.microsoft.com/windows/nanoserver:1809
+FROM microsoft/dotnet:2.2-aspnetcore-runtime AS base
+WORKDIR /app
 
-WORKDIR /app/
-ADD app/aspnetcoreapp/bin/Release/netcoreapp2.2/aspnetcoreapp.dll .
+FROM microsoft/dotnet:2.2-sdk AS build
+WORKDIR /src
+COPY aspnetcoreapp/aspnetcoreapp.csproj aspnetcoreapp/
+RUN dotnet restore aspnetcoreapp/aspnetcoreapp.csproj
+WORKDIR /src/aspnetcoreapp/
+COPY aspnetcoreapp/ .
+RUN dotnet build aspnetcoreapp.csproj -c Release -o /app
 
-EXPOSE 8000
+FROM build AS publish
+RUN dotnet publish aspnetcoreapp.csproj -c Release -o /app
 
-ENTRYPOINT ["dotnet", "aspnetcore.dll"]
+FROM base AS final
+COPY --from=publish /app .
+ENTRYPOINT ["dotnet", "aspnetcoreapp.dll"]
